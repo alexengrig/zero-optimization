@@ -40,8 +40,15 @@ def update_variables(*args):
 
         update_optimal_fields(param_names)
 
+        # Сбросить подсветку ошибки
+        function_label.config(fg="black")
+
     except Exception as e:
-        pass
+        # Подсветить метку с текстом "Выражение функции" красным
+        function_label.config(fg="red")
+
+        # Вывести ошибку в виде alert для пользователя
+        messagebox.showerror("Ошибка", f"Ошибка в выражении функции: {e}")
 
 
 def update_optimal_fields(param_names):
@@ -64,10 +71,12 @@ def update_optimal_fields(param_names):
 
 
 def show_graph():
+    update_variables()
     return None
 
 
 def optimize():
+    update_variables()
     try:
         expr_input = function_entry.get()
         param_names = sorted(set(sp.sympify(expr_input).free_symbols), key=str)
@@ -110,11 +119,15 @@ root.geometry("400x800")
 tk.Label(root, text="Ввод", font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky="w")
 
 # Выражение функции
-tk.Label(root, text="Выражение функции").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+function_label = tk.Label(root, text="Выражение функции")
+function_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 function_entry = tk.Entry(root)
 function_entry.insert(0, "(x-2)**2+(y-3)**2")
-function_entry.grid(row=1, column=1, columnspan=5, padx=5, pady=5, sticky="ew")
-function_entry.bind("<KeyRelease>", update_variables)
+function_entry.grid(row=1, column=1, columnspan=3, padx=5, pady=5, sticky="ew")
+function_entry.bind("<Return>", update_variables)  # Обновление при нажатии Enter
+
+# Кнопка "Ввод" рядом с выражением функции
+tk.Button(root, text="Ввод", command=update_variables).grid(row=1, column=4, padx=5, pady=5, sticky="ew")
 
 # Начальная точка
 tk.Label(root, text="Начальная точка").grid(row=2, column=0, padx=5, pady=5, sticky="w")
