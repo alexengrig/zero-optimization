@@ -117,59 +117,100 @@ def show_graph():
         param_names = sorted(set(sp.sympify(expr_input).free_symbols), key=str)
         param_names = [str(p) for p in param_names]
 
-        # Проверяем, выбрано ли ровно две переменные
+        # Проверяем, выбрано ли хотя бы одна переменная
         selected_indices = [i for i, var in enumerate(checkbuttons) if var.get()]
-        if len(selected_indices) != 2:
-            messagebox.showerror("Ошибка", "Для построения графика выберите ровно две переменные.")
+        if len(selected_indices) == 0:
+            messagebox.showerror("Ошибка", "Для построения графика выберите хотя бы одну переменную.")
             return
 
-        # Определяем две выделенные переменные и их индексы
-        var1, var2 = [param_names[i] for i in selected_indices]
-        idx1, idx2 = selected_indices
+        # Если выбрана только одна переменная, строим 2D-график
+        if len(selected_indices) == 1:
+            var = param_names[selected_indices[0]]
+            idx = selected_indices[0]
 
-        # Получаем значения начальной точки
-        x0 = [float(entry.get()) for entry in initial_entries]
+            # Получаем значения начальной точки
+            x0 = [float(entry.get()) for entry in initial_entries]
 
-        # Устанавливаем диапазон для графика
-        x_min = float(min_entry.get())
-        x_max = float(max_entry.get())
-        y_min = x_min
-        y_max = x_max
+            # Устанавливаем диапазон для графика
+            x_min = float(min_entry.get())
+            x_max = float(max_entry.get())
 
-        # Создаем сетку значений для выделенных переменных
-        x = np.linspace(x_min, x_max, 100)
-        y = np.linspace(y_min, y_max, 100)
-        X, Y = np.meshgrid(x, y)
+            # Создаем сетку значений для выбранной переменной
+            x = np.linspace(x_min, x_max, 100)
 
-        # Вычисляем значения функции
-        params = sp.symbols(param_names)
-        expr = sp.sympify(expr_input)
-        func = sp.lambdify(params, expr)
+            # Вычисляем значения функции
+            params = sp.symbols(param_names)
+            expr = sp.sympify(expr_input)
+            func = sp.lambdify(params, expr)
 
-        # Фиксируем остальные переменные
-        Z = np.zeros_like(X)
-        for i in range(X.shape[0]):
-            for j in range(X.shape[1]):
-                x0[idx1] = X[i, j]  # Первая выделенная переменная
-                x0[idx2] = Y[i, j]  # Вторая выделенная переменная
-                Z[i, j] = func(*x0)  # Вычисляем значение функции
+            # Фиксируем остальные переменные
+            Z = np.zeros_like(x)
+            for i in range(x.shape[0]):
+                x0[idx] = x[i]  # Первая (и единственная) выделенная переменная
+                Z[i] = func(*x0)  # Вычисляем значение функции
 
-        # Построение графика
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        surf = ax.plot_surface(X, Y, Z, cmap=cm.viridis, edgecolor='k', alpha=0.8)
+            # Построение 2D-графика
+            plt.plot(x, Z)
+            plt.title(f"График функции f({', '.join(param_names)}) = {expr_input}")
+            plt.xlabel(var)
+            plt.ylabel("f(x)")
+            plt.grid(True)
+            plt.show()
 
-        # Формируем название графика
-        ax.set_title(f"График функции f({', '.join(param_names)}) = {expr_input}")
+        # Если выбраны две переменные, строим 3D-график
+        elif len(selected_indices) == 2:
+            # Определяем две выделенные переменные и их индексы
+            var1, var2 = [param_names[i] for i in selected_indices]
+            idx1, idx2 = selected_indices
 
-        # Настройки осей
-        ax.set_xlabel(var1)
-        ax.set_ylabel(var2)
-        ax.set_zlabel("f(x, y)")
+            # Получаем значения начальной точки
+            x0 = [float(entry.get()) for entry in initial_entries]
 
-        # Добавляем цветовую шкалу
-        fig.colorbar(surf, shrink=0.5, aspect=5)
+            # Устанавливаем диапазон для графика
+            x_min = float(min_entry.get())
+            x_max = float(max_entry.get())
+            y_min = x_min
+            y_max = x_max
 
-        plt.show()
+            # Создаем сетку значений для выделенных переменных
+            x = np.linspace(x_min, x_max, 100)
+            y = np.linspace(y_min, y_max, 100)
+            X, Y = np.meshgrid(x, y)
+
+            # Вычисляем значения функции
+            params = sp.symbols(param_names)
+            expr = sp.sympify(expr_input)
+            func = sp.lambdify(params, expr)
+
+            # Фиксируем остальные переменные
+            Z = np.zeros_like(X)
+            for i in range(X.shape[0]):
+                for j in range(X.shape[1]):
+                    x0[idx1] = X[i, j]  # Первая выделенная переменная
+                    x0[idx2] = Y[i, j]  # Вторая выделенная переменная
+                    Z[i, j] = func(*x0)  # Вычисляем значение функции
+
+            # Построение 3D-графика
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            surf = ax.plot_surface(X, Y, Z, cmap=cm.viridis, edgecolor='k', alpha=0.8)
+
+            # Формируем название графика
+            ax.set_title(f"График функции f({', '.join(param_names)}) = {expr_input}")
+
+            # Настройки осей
+            ax.set_xlabel(var1)
+            ax.set_ylabel(var2)
+            ax.set_zlabel("f(x, y)")
+
+            # Добавляем цветовую шкалу
+            fig.colorbar(surf, shrink=0.5, aspect=5)
+
+            plt.show()
+
+        else:
+            messagebox.showerror("Ошибка", "Для построения графика выберите ровно одну или две переменные.")
+            return
 
     except Exception as e:
         messagebox.showerror("Ошибка", f"Ошибка при построении графика: {e}")
