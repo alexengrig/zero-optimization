@@ -226,19 +226,19 @@ def optimize():
         x0 = [float(entry.get()) for entry in initial_entries]
 
         method = method_combobox.get()
-        alpha = float(alpha_entry.get())
-        beta = float(beta_entry.get())
+        tol = float(tol_entry.get())
+        max_iter = float(max_iter_entry.get())
 
         params = sp.symbols(param_names)
         expr = sp.sympify(expr_input)
         func = sp.lambdify(params, expr)
 
         if method == "Хука-Дживса":
-            optimal_args, optimal_value = hooke_jeeves(func, np.array(x0))
+            optimal_args, optimal_value, k = hooke_jeeves(func, np.array(x0), tol=tol, max_iter=max_iter)
         elif method == "Нелдера-Мида":
-            optimal_args, optimal_value = nelder_mead(func, np.array(x0))
+            optimal_args, optimal_value, k = nelder_mead(func, np.array(x0), tol=tol, max_iter=max_iter)
         elif method == "Пауэлла":
-            optimal_args, optimal_value = powell(func, np.array(x0))
+            optimal_args, optimal_value, k = powell(func, np.array(x0), tol=tol, max_iter=max_iter)
         else:
             raise ValueError("Не выбран метод оптимизации")
 
@@ -249,7 +249,8 @@ def optimize():
         result_entry.insert(0, format_number(optimal_value))
 
     except Exception as e:
-        messagebox.showerror("Ошибка", str(e))
+        messagebox.showerror("Ошибка", f"Ошибка при поиске: {e}")
+        raise e
 
 
 def enable_copy_paste(entry_widget):
@@ -283,22 +284,23 @@ variable_frame = tk.Frame(root)
 variable_frame.grid(row=3, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
 
 # Инпуты для min и max, и кнопка "График"
-tk.Label(root, text="min:").grid(row=4, column=0, padx=5, pady=5, sticky="e")  # Выравнивание по левому краю
+tk.Label(root, text="min").grid(row=4, column=0, padx=5, pady=5, sticky="e")  # Выравнивание по левому краю
 min_entry = tk.Entry(root, width=10)
 min_entry.insert(0, "-100")  # Значение по умолчанию для min
 min_entry.grid(row=4, column=1, padx=5, pady=5, sticky="ew")  # Растягиваем по горизонтали
 
-tk.Label(root, text="max:").grid(row=4, column=2, padx=5, pady=5, sticky="w")  # Выравнивание по левому краю
+tk.Label(root, text="max").grid(row=4, column=2, padx=5, pady=5, sticky="w")  # Выравнивание по левому краю
 max_entry = tk.Entry(root, width=10)
 max_entry.insert(0, "100")  # Значение по умолчанию для max
 max_entry.grid(row=4, column=3, padx=5, pady=5, sticky="ew")  # Растягиваем по горизонтали
 
 # Кнопка "График" в одной строке с min и max
-tk.Button(root, text="График", command=show_graph).grid(row=4, column=4, padx=5, pady=5,
-                                                        sticky="ew")  # Выравнивание по левому краю
+tk.Button(root, text="График", command=show_graph).grid(
+    row=4, column=4, padx=5, pady=5, sticky="ew")  # Выравнивание по левому краю
 
 # Метод (заголовок)
-tk.Label(root, text="Метод", font=("Arial", 12, "bold")).grid(row=5, column=0, columnspan=5, padx=5, pady=5, sticky="w")
+tk.Label(root, text="Метод", font=("Arial", 12, "bold")).grid(
+    row=5, column=0, columnspan=5, padx=5, pady=5, sticky="w")
 
 # Метод и кнопка "Найти" в одной строке
 tk.Label(root, text="Тип").grid(row=6, column=0, padx=5, pady=5, sticky="w")
@@ -312,19 +314,19 @@ tk.Button(root, text="Найти", command=optimize).grid(row=6, column=4, padx=
 # Параметры метода
 tk.Label(root, text="Параметры метода").grid(row=7, column=0, columnspan=5, padx=5, pady=5, sticky="w")
 
-tk.Label(root, text="alpha").grid(row=8, column=0, padx=5, pady=5, sticky="w")
-alpha_entry = tk.Entry(root, width=10)
-alpha_entry.insert(0, "1.0")
-alpha_entry.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
+tk.Label(root, text="ε").grid(row=8, column=0, padx=5, pady=5, sticky="w")
+tol_entry = tk.Entry(root, width=10)
+tol_entry.insert(0, "1e-6")  # Значение по умолчанию для tol
+tol_entry.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
 
-tk.Label(root, text="beta").grid(row=9, column=0, padx=5, pady=5, sticky="w")
-beta_entry = tk.Entry(root, width=10)
-beta_entry.insert(0, "0.5")
-beta_entry.grid(row=9, column=1, padx=5, pady=5, sticky="ew")
+tk.Label(root, text="max k").grid(row=9, column=0, padx=5, pady=5, sticky="w")
+max_iter_entry = tk.Entry(root, width=10)
+max_iter_entry.insert(0, "1000")  # Значение по умолчанию для max_iter
+max_iter_entry.grid(row=9, column=1, padx=5, pady=5, sticky="ew")
 
 # Вывод (заголовок)
-tk.Label(root, text="Вывод", font=("Arial", 12, "bold")).grid(row=10, column=0, columnspan=5, padx=5, pady=5,
-                                                              sticky="w")
+tk.Label(root, text="Вывод", font=("Arial", 12, "bold")).grid(
+    row=10, column=0, columnspan=5, padx=5, pady=5, sticky="w")
 
 # Результат
 tk.Label(root, text="Значение функции").grid(row=11, column=0, padx=5, pady=5, sticky="w")
