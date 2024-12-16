@@ -1,3 +1,9 @@
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib import cm  # Для цветовой карты
+
+matplotlib.use('TkAgg')
+
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
@@ -69,6 +75,7 @@ def update_variables(*args):
 
         # Вывести ошибку в виде alert для пользователя
         messagebox.showerror("Ошибка", f"Ошибка в выражении функции: {e}")
+        raise e
 
 
 def update_checkboxes():
@@ -104,7 +111,69 @@ def update_optimal_fields(param_names):
 
 
 def show_graph():
-    return None
+    try:
+        # Получаем выражение функции
+        expr_input = function_entry.get()
+        param_names = sorted(set(sp.sympify(expr_input).free_symbols), key=str)
+        param_names = [str(p) for p in param_names]
+
+        # Проверяем, выбрано ли ровно две переменные
+        selected_indices = [i for i, var in enumerate(checkbuttons) if var.get()]
+        if len(selected_indices) != 2:
+            messagebox.showerror("Ошибка", "Для построения графика выберите ровно две переменные.")
+            return
+
+        # Определяем две выделенные переменные и их индексы
+        var1, var2 = [param_names[i] for i in selected_indices]
+        idx1, idx2 = selected_indices
+
+        # Получаем значения начальной точки
+        x0 = [float(entry.get()) for entry in initial_entries]
+
+        # Устанавливаем диапазон для графика
+        x_min = float(min_entry.get())
+        x_max = float(max_entry.get())
+        y_min = x_min
+        y_max = x_max
+
+        # Создаем сетку значений для выделенных переменных
+        x = np.linspace(x_min, x_max, 100)
+        y = np.linspace(y_min, y_max, 100)
+        X, Y = np.meshgrid(x, y)
+
+        # Вычисляем значения функции
+        params = sp.symbols(param_names)
+        expr = sp.sympify(expr_input)
+        func = sp.lambdify(params, expr)
+
+        # Фиксируем остальные переменные
+        Z = np.zeros_like(X)
+        for i in range(X.shape[0]):
+            for j in range(X.shape[1]):
+                x0[idx1] = X[i, j]  # Первая выделенная переменная
+                x0[idx2] = Y[i, j]  # Вторая выделенная переменная
+                Z[i, j] = func(*x0)  # Вычисляем значение функции
+
+        # Построение графика
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        surf = ax.plot_surface(X, Y, Z, cmap=cm.viridis, edgecolor='k', alpha=0.8)
+
+        # Формируем название графика
+        ax.set_title(f"График функции f({', '.join(param_names)}) = {expr_input}")
+
+        # Настройки осей
+        ax.set_xlabel(var1)
+        ax.set_ylabel(var2)
+        ax.set_zlabel("f(x, y)")
+
+        # Добавляем цветовую шкалу
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+
+        plt.show()
+
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Ошибка при построении графика: {e}")
+        raise e
 
 
 def optimize():
@@ -142,6 +211,12 @@ def optimize():
         messagebox.showerror("Ошибка", str(e))
 
 
+def enable_copy_paste(entry_widget):
+    """Добавляет обработчики для Ctrl+C и Ctrl+X."""
+    entry_widget.bind("<Control-c>", lambda e: entry_widget.event_generate("<<Copy>>"))
+    entry_widget.bind("<Control-x>", lambda e: entry_widget.event_generate("<<Cut>>"))
+
+
 root = tk.Tk()
 root.title("Оптимизация функции")
 root.geometry("400x800")
@@ -156,6 +231,7 @@ function_entry = tk.Entry(root)
 function_entry.insert(0, "(x-2)**2+(y-3)**2")
 function_entry.grid(row=1, column=1, columnspan=3, padx=5, pady=5, sticky="ew")
 function_entry.bind("<Return>", update_variables)  # Обновление при нажатии Enter
+enable_copy_paste(function_entry)  # Добавляем поддержку Ctrl+C и Ctrl+X
 
 # Кнопка "Ввод" рядом с выражением функции
 tk.Button(root, text="Ввод", command=update_variables).grid(row=1, column=4, padx=5, pady=5, sticky="ew")
