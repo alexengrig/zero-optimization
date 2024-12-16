@@ -14,7 +14,7 @@ def nelder_mead(func, x0, alpha=1.0, beta=0.5, gamma=2.0, tol=1e-6, max_iter=100
     :param alpha: Коэффициент отражения.
     :param beta: Коэффициент сжатия.
     :param gamma: Коэффициент растяжения.
-    :param tol: Точность сходимости.
+    :param tol: Точность ε (эпсилон).
     :param max_iter: Максимальное число итераций.
     :return: Оптимальная точка и значение функции в этой точке.
     """
@@ -36,9 +36,9 @@ def nelder_mead(func, x0, alpha=1.0, beta=0.5, gamma=2.0, tol=1e-6, max_iter=100
         simplex.append(x_new.tolist())
 
     simplex = np.array(simplex)
-    iteration = 0
+    count_iter = 0
 
-    while iteration < max_iter:
+    while count_iter < max_iter:
         # 2. Сортировка точек симплекса по значению функции
         simplex = sort_simplex(simplex, func)
         x_best = simplex[0]
@@ -71,7 +71,7 @@ def nelder_mead(func, x0, alpha=1.0, beta=0.5, gamma=2.0, tol=1e-6, max_iter=100
         if np.linalg.norm(simplex[0] - simplex[-1]) < tol:
             break
 
-        iteration += 1
+        count_iter += 1
 
     # Возвращаем оптимальную точку и значение функции
-    return simplex[0], func(*simplex[0])
+    return simplex[0], func(*simplex[0]), count_iter

@@ -99,10 +99,10 @@ def update_optimal_fields(param_names):
     optimal_entries = []
 
     # Создаем матрицу для оптимальных точек (3 колонки)
-    rows = len(param_names) // 3 + (len(param_names) % 3)
+    rows = len(param_names) // 2 + (len(param_names) % 2)
     for i, var in enumerate(param_names):
-        row = i // 3
-        col = i % 3
+        row = i // 2
+        col = i % 2
 
         tk.Label(optimal_frame, text=f"{var}").grid(row=row, column=col * 2, padx=5, pady=5, sticky="w")
         optimal_entry = tk.Entry(optimal_frame, width=10)
@@ -248,6 +248,10 @@ def optimize():
         result_entry.delete(0, tk.END)
         result_entry.insert(0, format_number(optimal_value))
 
+        # Обновляем поле для вывода k
+        k_entry.delete(0, tk.END)
+        k_entry.insert(0, str(k))
+
     except Exception as e:
         messagebox.showerror("Ошибка", f"Ошибка при поиске: {e}")
         raise e
@@ -261,7 +265,7 @@ def enable_copy_paste(entry_widget):
 
 root = tk.Tk()
 root.title("Оптимизация функции")
-root.geometry("400x800")
+root.geometry("410x800")
 
 # Ввод (заголовок)
 tk.Label(root, text="Ввод", font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky="w")
@@ -314,12 +318,12 @@ tk.Button(root, text="Найти", command=optimize).grid(row=6, column=4, padx=
 # Параметры метода
 tk.Label(root, text="Параметры метода").grid(row=7, column=0, columnspan=5, padx=5, pady=5, sticky="w")
 
-tk.Label(root, text="ε").grid(row=8, column=0, padx=5, pady=5, sticky="w")
+tk.Label(root, text="Критейрий точности (ε)").grid(row=8, column=0, padx=5, pady=5, sticky="w")
 tol_entry = tk.Entry(root, width=10)
 tol_entry.insert(0, "1e-6")  # Значение по умолчанию для tol
 tol_entry.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
 
-tk.Label(root, text="max k").grid(row=9, column=0, padx=5, pady=5, sticky="w")
+tk.Label(root, text="Максимальное кол-во (k)").grid(row=9, column=0, padx=5, pady=5, sticky="w")
 max_iter_entry = tk.Entry(root, width=10)
 max_iter_entry.insert(0, "1000")  # Значение по умолчанию для max_iter
 max_iter_entry.grid(row=9, column=1, padx=5, pady=5, sticky="ew")
@@ -333,10 +337,15 @@ tk.Label(root, text="Значение функции").grid(row=11, column=0, pa
 result_entry = tk.Entry(root, width=30)
 result_entry.grid(row=11, column=1, columnspan=4, padx=5, pady=5, sticky="ew")
 
+# Внесение изменений в интерфейс для добавления поля k
+tk.Label(root, text="Количество итераций (k)").grid(row=12, column=0, padx=5, pady=5, sticky="w")
+k_entry = tk.Entry(root, width=10)
+k_entry.grid(row=12, column=1, padx=5, pady=5, sticky="ew")  # Растягиваем по горизонтали
+
 # Оптимальная точка
-tk.Label(root, text="Оптимальная точка").grid(row=12, column=0, padx=5, pady=5, sticky="w")
+tk.Label(root, text="Оптимальная точка").grid(row=13, column=0, padx=5, pady=5, sticky="w")
 optimal_frame = tk.Frame(root)
-optimal_frame.grid(row=13, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
+optimal_frame.grid(row=14, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
 
 update_variables()
 

@@ -72,4 +72,4 @@ def hooke_jeeves(func, x0, step_size=0.5, step_reduction=0.5, tol=1e-6, max_iter
 
     # 5. Возвращаем оптимальные параметры и значение функции
     logger.debug(f"Оптимизация завершена: f({', '.join(str(arg) for arg in x_opt)}) = {func(*x_opt)}")
-    return x_opt, func(*x_opt)
+    return x_opt, func(*x_opt), count_iter

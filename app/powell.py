@@ -40,9 +40,9 @@ def powell(func, x0, tol=1e-6, max_iter=1000):
     x = np.array(x0, dtype=float)  # Начальная точка
     n = len(x)  # Размерность задачи
     directions = np.eye(n)  # Набор начальных направлений (единичные векторы)
-    iter_count = 0  # Счетчик итераций
+    count_iter = 0  # Счетчик итераций
 
-    while iter_count < max_iter:
+    while count_iter < max_iter:
         x_start = np.copy(x)  # Сохраняем начальную точку текущей итерации
 
         # 2. Поочередный линейный поиск по всем направлениям
@@ -64,7 +64,7 @@ def powell(func, x0, tol=1e-6, max_iter=1000):
         if np.linalg.norm(x - x_start) < tol:
             break
 
-        iter_count += 1
+        count_iter += 1
 
     # 5. Возвращаем результат
-    return x, func(*x)
+    return x, func(*x), count_iter
