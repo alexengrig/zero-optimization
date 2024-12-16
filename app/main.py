@@ -20,8 +20,16 @@ history_data = []  # Список для хранения истории пои�
 checkbuttons = []  # Список для переменных BooleanVar
 checkbuttons_widgets = []  # Список для чекбоксов
 
+step_size_entry = None
+step_reduction_entry = None
+alpha_entry = None
+beta_entry = None
+gamma_entry = None
+
 
 def update_variables(*args):
+    # Вызываем update_method_parameters при изменении метода
+    update_method_params()
     for widget in variable_frame.winfo_children():
         widget.destroy()
 
@@ -90,6 +98,53 @@ def update_checkboxes():
         else:
             # Чекбокс отключен
             checkbuttons_widgets[i].config(state="disabled")
+
+
+def update_method_params(*args):
+    global step_size_entry, step_reduction_entry, alpha_entry, beta_entry, gamma_entry
+    # Сначала очищаем старые параметры
+    for widget in method_param_frame.winfo_children():
+        widget.grid_forget()
+
+    method = method_combobox.get()
+
+    if method == "Хука-Дживса":
+        # Добавляем параметры для метода Хука-Дживса
+        tk.Label(method_param_frame, text="Начальный шаг").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        step_size_entry = tk.Entry(method_param_frame, width=10)
+        step_size_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        step_size_entry.insert(0, "0.5")  # Значение по умолчанию
+
+        tk.Label(method_param_frame, text="Коэффициент уменьшения шага").grid(
+            row=1, column=0, padx=5, pady=5, sticky="w")
+        step_reduction_entry = tk.Entry(method_param_frame, width=10)
+        step_reduction_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        step_reduction_entry.insert(0, "0.5")  # Значение по умолчанию
+
+    elif method == "Нелдера-Мида":
+        # Добавляем параметры для метода Нелдера-Мида
+        tk.Label(method_param_frame, text="Коэффициент отражения (α)").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        alpha_entry = tk.Entry(method_param_frame, width=10)
+        alpha_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        alpha_entry.insert(0, "1")  # Значение по умолчанию
+
+        tk.Label(method_param_frame, text="Коэффициент сжатия (β)").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        beta_entry = tk.Entry(method_param_frame, width=10)
+        beta_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        beta_entry.insert(0, "0.5")  # Значение по умолчанию
+
+        tk.Label(method_param_frame, text="Коэффициент растяжения (γ)").grid(row=2, column=0, padx=5, pady=5,
+                                                                             sticky="w")
+        gamma_entry = tk.Entry(method_param_frame, width=10)
+        gamma_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        gamma_entry.insert(0, "2")  # Значение по умолчанию
+
+    elif method == "Пауэлла":
+        # Для метода Пауэлла параметры не меняются, можно оставить пустым или убрать
+        pass  # Или добавьте здесь другие параметры, если нужно
+
+    # Важно обновить интерфейс
+    method_param_frame.grid(row=10, column=0, columnspan=5, padx=5, pady=5, sticky="w")
 
 
 def update_optimal_fields(param_names):
@@ -234,11 +289,31 @@ def optimize():
         expr = sp.sympify(expr_input)
         func = sp.lambdify(params, expr)
 
+        # Инициализируем параметры для записи в историю
+        method_params = {}
+
         if method == "Хука-Дживса":
-            optimal_args, optimal_value, k = hooke_jeeves(func, np.array(x0), tol=tol, max_iter=max_iter)
+            step_size = float(step_size_entry.get())
+            step_reduction = float(step_reduction_entry.get())
+            method_params = {
+                "step_size": step_size,
+                "step_reduction": step_reduction
+            }
+            optimal_args, optimal_value, k = hooke_jeeves(func, np.array(x0), tol=tol, max_iter=max_iter,
+                                                          step_size=step_size, step_reduction=step_reduction)
         elif method == "Нелдера-Мида":
-            optimal_args, optimal_value, k = nelder_mead(func, np.array(x0), tol=tol, max_iter=max_iter)
+            alpha = float(alpha_entry.get())
+            beta = float(beta_entry.get())
+            gamma = float(gamma_entry.get())
+            method_params = {
+                "alpha": alpha,
+                "beta": beta,
+                "gamma": gamma
+            }
+            optimal_args, optimal_value, k = nelder_mead(func, np.array(x0), tol=tol, max_iter=max_iter, alpha=alpha,
+                                                         beta=beta, gamma=gamma)
         elif method == "Пауэлла":
+            method_params = {}  # Для метода Пауэлла параметры не меняются, если нет других
             optimal_args, optimal_value, k = powell(func, np.array(x0), tol=tol, max_iter=max_iter)
         else:
             raise ValueError("Не выбран метод оптимизации")
@@ -259,11 +334,12 @@ def optimize():
             "function": expr_input,
             "initial_point": "\n".join([entry.get() for entry in initial_entries]),
             "method": method,
-            "parameters": f"ε = {tol}\nmax k = {max_iter}",
+            "parameters": f"ε = {tol}\nmax k = {max_iter}\n" + "\n".join(
+                [f"{key} = {value}" for key, value in method_params.items()]),
             "iterations": k,
             "function_value": format_number(optimal_value),
             "optimal_point": "\n".join(
-                [f"{param}={format_number(val)}" for param, val in zip(param_names, optimal_args)])
+                [f"{param}={format_number(val)}" for param, val in zip(param_names, optimal_args)]),
         })
 
     except Exception as e:
@@ -373,6 +449,7 @@ tk.Label(root, text="Тип").grid(row=6, column=0, padx=5, pady=5, sticky="w")
 method_combobox = ttk.Combobox(root, values=["Хука-Дживса", "Нелдера-Мида", "Пауэлла"], state="readonly")
 method_combobox.set("Хука-Дживса")
 method_combobox.grid(row=6, column=1, columnspan=3, padx=5, pady=5, sticky="ew")
+method_combobox.bind("<<ComboboxSelected>>", update_method_params)
 
 # Кнопка "Найти" справа от выбора метода
 tk.Button(root, text="Найти", command=optimize).grid(row=6, column=4, padx=5, pady=5, sticky="ew")
@@ -380,7 +457,7 @@ tk.Button(root, text="Найти", command=optimize).grid(row=6, column=4, padx=
 # Параметры метода
 tk.Label(root, text="Параметры метода").grid(row=7, column=0, columnspan=5, padx=5, pady=5, sticky="w")
 
-tk.Label(root, text="Критейрий точности (ε)").grid(row=8, column=0, padx=5, pady=5, sticky="w")
+tk.Label(root, text="Критерий точности (ε)").grid(row=8, column=0, padx=5, pady=5, sticky="w")
 tol_entry = tk.Entry(root, width=10)
 tol_entry.insert(0, "1e-6")  # Значение по умолчанию для tol
 tol_entry.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
@@ -390,24 +467,28 @@ max_iter_entry = tk.Entry(root, width=10)
 max_iter_entry.insert(0, "1000")  # Значение по умолчанию для max_iter
 max_iter_entry.grid(row=9, column=1, padx=5, pady=5, sticky="ew")
 
+# Рамка для параметров метода
+method_param_frame = tk.Frame(root)
+method_param_frame.grid(row=10, column=0, columnspan=5, padx=5, pady=5, sticky="w")
+
 # Вывод (заголовок)
 tk.Label(root, text="Вывод", font=("Arial", 12, "bold")).grid(
-    row=10, column=0, columnspan=5, padx=5, pady=5, sticky="w")
+    row=11, column=0, columnspan=5, padx=5, pady=5, sticky="w")
 
 # Результат
-tk.Label(root, text="Значение функции").grid(row=11, column=0, padx=5, pady=5, sticky="w")
+tk.Label(root, text="Значение функции").grid(row=12, column=0, padx=5, pady=5, sticky="w")
 result_entry = tk.Entry(root, width=30)
-result_entry.grid(row=11, column=1, columnspan=4, padx=5, pady=5, sticky="ew")
+result_entry.grid(row=12, column=1, columnspan=4, padx=5, pady=5, sticky="ew")
 
 # Внесение изменений в интерфейс для добавления поля k
-tk.Label(root, text="Количество итераций (k)").grid(row=12, column=0, padx=5, pady=5, sticky="w")
+tk.Label(root, text="Количество итераций (k)").grid(row=13, column=0, padx=5, pady=5, sticky="w")
 k_entry = tk.Entry(root, width=10)
-k_entry.grid(row=12, column=1, padx=5, pady=5, sticky="ew")  # Растягиваем по горизонтали
+k_entry.grid(row=13, column=1, padx=5, pady=5, sticky="ew")  # Растягиваем по горизонтали
 
 # Оптимальная точка
-tk.Label(root, text="Оптимальная точка").grid(row=13, column=0, padx=5, pady=5, sticky="w")
+tk.Label(root, text="Оптимальная точка").grid(row=14, column=0, padx=5, pady=5, sticky="w")
 optimal_frame = tk.Frame(root)
-optimal_frame.grid(row=14, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
+optimal_frame.grid(row=15, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
 
 update_variables()
 
