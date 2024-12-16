@@ -1,20 +1,21 @@
 import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib import cm  # Для цветовой карты
 
 matplotlib.use('TkAgg')
-
+import matplotlib.pyplot as plt
+from matplotlib import cm
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
-
 import numpy as np
 import sympy as sp
+from datetime import datetime
 
 from app.hooke_jeeves import hooke_jeeves
 from app.nelder_mead import nelder_mead
 from app.powell import powell
 from app.utils import format_number
+
+history_data = []  # Список для хранения истории поиска
 
 checkbuttons = []  # Список для переменных BooleanVar
 checkbuttons_widgets = []  # Список для чекбоксов
@@ -252,9 +253,63 @@ def optimize():
         k_entry.delete(0, tk.END)
         k_entry.insert(0, str(k))
 
+        # Добавление записи в историю
+        history_data.append({
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "function": expr_input,
+            "initial_point": "\n".join([entry.get() for entry in initial_entries]),
+            "method": method,
+            "parameters": f"ε = {tol}\nmax k = {max_iter}",
+            "iterations": k,
+            "function_value": format_number(optimal_value),
+            "optimal_point": "\n".join(
+                [f"{param}={format_number(val)}" for param, val in zip(param_names, optimal_args)])
+        })
+
     except Exception as e:
         messagebox.showerror("Ошибка", f"Ошибка при поиске: {e}")
         raise e
+
+
+def show_history():
+    # Создаем новое окно для истории
+    history_window = tk.Toplevel(root)
+    history_window.title("История поиска")
+    history_window.geometry("600x400")
+
+    # Настройка стиля для Treeview
+    s = ttk.Style()
+    s.configure('Treeview', rowheight=100)  # Устанавливаем высоту строк
+
+    # Создаем таблицу для отображения истории
+    tree = ttk.Treeview(history_window, columns=(
+        "Date", "Function", "Initial Point", "Method", "Parameters", "Iterations", "Function Value", "Optimal Point"),
+                        show="headings")
+
+    # Настройка заголовков столбцов
+    tree.heading("Date", text="Дата")
+    tree.heading("Function", text="Функция")
+    tree.heading("Initial Point", text="Начальная точка")
+    tree.heading("Method", text="Метод")
+    tree.heading("Parameters", text="Параметры")
+    tree.heading("Iterations", text="Итерации")
+    tree.heading("Function Value", text="Значение функции")
+    tree.heading("Optimal Point", text="Оптимальная точка")
+
+    # Настройка колонок для автоматической подгонки ширины
+    for col in tree["columns"]:
+        tree.column(col, width=100, anchor="w")
+
+    # Добавляем данные в таблицу
+    for record in history_data:
+        values = (
+            record["date"], record["function"], record["initial_point"], record["method"], record["parameters"],
+            record["iterations"], record["function_value"], record["optimal_point"]
+        )
+        # Вставляем строку в таблицу
+        tree.insert("", "end", values=values)
+
+    tree.pack(fill="both", expand=True)
 
 
 def enable_copy_paste(entry_widget):
@@ -266,6 +321,13 @@ def enable_copy_paste(entry_widget):
 root = tk.Tk()
 root.title("Оптимизация функции")
 root.geometry("410x800")
+
+# Меню
+menu_bar = tk.Menu(root)
+root.config(menu=menu_bar)
+
+history_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="История", command=show_history)
 
 # Ввод (заголовок)
 tk.Label(root, text="Ввод", font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky="w")
