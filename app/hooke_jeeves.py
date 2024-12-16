@@ -13,7 +13,7 @@ def hooke_jeeves(func, x0, step_size=0.5, step_reduction=0.5, tol=1e-6, max_iter
     :param x0: Начальная точка.
     :param step_size: Начальный шаг.
     :param step_reduction: Коэффициент уменьшения шага.
-    :param tol: Точность.
+    :param tol: Точность ε (эпсилон).
     :param max_iter: Максимальное число итераций.
     :return: Оптимальная точка и значение функции в этой точке.
     """
@@ -44,12 +44,12 @@ def hooke_jeeves(func, x0, step_size=0.5, step_reduction=0.5, tol=1e-6, max_iter
     # 1. Инициализация: задаем начальную точку, шаг, и счетчик итераций
     x_base = np.array(x0, dtype=float)  # Начальная точка
     x_opt = np.copy(x_base)  # Оптимальная точка, начинаем с x0
-    iter_count = 0  # Счетчик итераций
+    count_iter = 0  # Счетчик итераций
 
-    while step_size > tol and iter_count < max_iter:
+    while step_size > tol and count_iter < max_iter:
         # Логируем текущее состояние перед исследующим поиском
         logger.debug(
-            f"Итерация #{iter_count}: шаг={step_size}"
+            f"Итерация #{count_iter}: шаг={step_size}"
             f", f({', '.join(str(arg) for arg in x_opt)}) = {func(*x_opt)}"
         )
 
@@ -68,7 +68,7 @@ def hooke_jeeves(func, x0, step_size=0.5, step_reduction=0.5, tol=1e-6, max_iter
             x_base = np.copy(x_new)  # Обновляем базовую точку
 
         # Увеличиваем счетчик итераций
-        iter_count += 1
+        count_iter += 1
 
     # 5. Возвращаем оптимальные параметры и значение функции
     logger.debug(f"Оптимизация завершена: f({', '.join(str(arg) for arg in x_opt)}) = {func(*x_opt)}")
