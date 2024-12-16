@@ -10,6 +10,9 @@ from app.nelder_mead import nelder_mead
 from app.powell import powell
 from app.utils import format_number
 
+checkbuttons = []  # Список для переменных BooleanVar
+checkbuttons_widgets = []  # Список для чекбоксов
+
 
 def update_variables(*args):
     for widget in variable_frame.winfo_children():
@@ -23,21 +26,38 @@ def update_variables(*args):
         param_names = sorted(set(sp.sympify(expr_input).free_symbols), key=str)
         param_names = [str(p) for p in param_names]
 
-        global initial_entries
+        global initial_entries, checkbuttons, checkbuttons_widgets, selected_checkboxes
         initial_entries = []
+        checkbuttons = []
+        checkbuttons_widgets = []  # Обновляем список чекбоксов
+        selected_checkboxes = []
 
-        # Создаем матрицу для начальных точек (4 колонки)
-        rows = len(param_names) // 4 + (len(param_names) % 4)
+        # Создаем матрицу для начальных точек (2 колонки)
+        rows = len(param_names) // 2 + (1 if len(param_names) % 2 != 0 else 0)
         for i, var in enumerate(param_names):
-            row = i // 4
-            col = i % 4
+            row = i // 2
+            col = i % 2
 
-            tk.Label(variable_frame, text=f"{var}").grid(row=row, column=col * 2, padx=5, pady=5, sticky="w")
+            tk.Label(variable_frame, text=f"{var}").grid(row=row, column=col * 3, padx=5, pady=5, sticky="w")
             initial_entry = tk.Entry(variable_frame, width=10)
             initial_entry.insert(0, "0")
-            initial_entry.grid(row=row, column=col * 2 + 1, padx=5, pady=5, sticky="w")
+            initial_entry.grid(row=row, column=col * 3 + 1, padx=5, pady=5, sticky="w")
             initial_entries.append(initial_entry)
 
+            # Чекбокс для выбора переменной
+            var_selected = tk.BooleanVar()
+            checkbutton = tk.Checkbutton(variable_frame, variable=var_selected,
+                                         command=lambda: update_checkboxes())
+            checkbutton.grid(row=row, column=col * 3 + 2, padx=5, pady=5)
+            checkbuttons.append(var_selected)
+            checkbuttons_widgets.append(checkbutton)  # Сохраняем виджет чекбокса
+
+            # Автоматически выделяем первые два чекбокса
+            if i < 2:
+                var_selected.set(True)
+                selected_checkboxes.append(i)
+
+        update_checkboxes()  # Применяем состояние чекбоксов
         update_optimal_fields(param_names)
 
         # Сбросить подсветку ошибки
@@ -51,6 +71,19 @@ def update_variables(*args):
         messagebox.showerror("Ошибка", f"Ошибка в выражении функции: {e}")
 
 
+def update_checkboxes():
+    # Пересоздаем список виджетов чекбоксов
+    selected_checkboxes = [i for i, var in enumerate(checkbuttons) if var.get()]
+
+    for i, checkbutton_var in enumerate(checkbuttons):  # Работаем с переменными BooleanVar
+        if len(selected_checkboxes) < 2 or i in selected_checkboxes:
+            # Чекбокс активен
+            checkbuttons_widgets[i].config(state="normal")
+        else:
+            # Чекбокс отключен
+            checkbuttons_widgets[i].config(state="disabled")
+
+
 def update_optimal_fields(param_names):
     for widget in optimal_frame.winfo_children():
         widget.destroy()
@@ -58,11 +91,11 @@ def update_optimal_fields(param_names):
     global optimal_entries
     optimal_entries = []
 
-    # Создаем матрицу для оптимальных точек (4 колонки)
-    rows = len(param_names) // 4 + (len(param_names) % 4)
+    # Создаем матрицу для оптимальных точек (3 колонки)
+    rows = len(param_names) // 3 + (len(param_names) % 3)
     for i, var in enumerate(param_names):
-        row = i // 4
-        col = i % 4
+        row = i // 3
+        col = i % 3
 
         tk.Label(optimal_frame, text=f"{var}").grid(row=row, column=col * 2, padx=5, pady=5, sticky="w")
         optimal_entry = tk.Entry(optimal_frame, width=10)
@@ -71,12 +104,10 @@ def update_optimal_fields(param_names):
 
 
 def show_graph():
-    update_variables()
     return None
 
 
 def optimize():
-    update_variables()
     try:
         expr_input = function_entry.get()
         param_names = sorted(set(sp.sympify(expr_input).free_symbols), key=str)
